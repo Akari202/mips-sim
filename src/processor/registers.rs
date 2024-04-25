@@ -1,5 +1,6 @@
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+use crate::processor::alu::FunctionCode;
 use crate::processor::buffer::{IDEXBuffer, IFIDBuffer, MEMWBBuffer};
 use crate::processor::instruction::InstructionType;
 
@@ -76,6 +77,12 @@ pub enum Register {
     Ra = 31
 }
 
+pub enum DecodeReturn {
+    Jump(u32),
+    Syscall,
+    None
+}
+
 impl Registers {
     pub fn new() -> Self {
         Self {
@@ -94,36 +101,43 @@ impl Registers {
         self.r[reg as usize] = value;
     }
 
-    pub fn read_write(&mut self, ifid: &IFIDBuffer, idex: &mut IDEXBuffer, memwb: &mut MEMWBBuffer) {
+    pub fn read_write(&mut self, ifid: &IFIDBuffer, idex: &mut IDEXBuffer, memwb: &mut MEMWBBuffer) -> DecodeReturn {
         let instruction = ifid.instruction;
         idex.instruction = instruction;
         idex.pc = ifid.pc;
+        idex.data_1 = 0;
+        idex.data_2 = 0;
+        idex.sign_extended = 0;
         if instruction.is_none() {
-            idex.data_1 = 0;
-            idex.data_2 = 0;
-            idex.sign_extended = 0;
-            return;
+            return DecodeReturn::None;
         }
         let instruction = instruction.unwrap();
         match instruction.instruction_type {
             InstructionType::R => {
                 idex.data_1 = self.get(Register::from_u8(instruction.rs.unwrap()).unwrap());
                 idex.data_2 = self.get(Register::from_u8(instruction.rt.unwrap()).unwrap());
-            },
-            InstructionType::I => {
-                if instruction.opcode == 0x04 || instruction.opcode == 0x05 {
-                    idex.data_1 = self.get(Register::from_u8(instruction.rs.unwrap()).unwrap());
-                    idex.data_2 = self.get(Register::from_u8(instruction.rt.unwrap()).unwrap());
+                if instruction.funct.unwrap() == FunctionCode::Syscall as u8 {
+                    DecodeReturn::Syscall
                 } else {
-                    idex.data_1 = self.get(Register::from_u8(instruction.rs.unwrap()).unwrap());
-                    idex.data_2 = instruction.imm.unwrap();
+                    DecodeReturn::None
                 }
             },
-            InstructionType::J => {
-                idex.data_1 = 0;
-                idex.data_2 = 0;
+            InstructionType::I => {
+                idex.data_1 = self.get(Register::from_u8(instruction.rs.unwrap()).unwrap());
+                idex.data_2 = self.get(Register::from_u8(instruction.rt.unwrap()).unwrap());
+                idex.sign_extended = instruction.imm.unwrap();
+                DecodeReturn::None
             },
-            _ => {}
+            InstructionType::J => {
+                if instruction.opcode == 0x3 {
+                    // NOTE: it is unclear if the pc should be set to pc + 8 or + 4
+                    self.set(Register::Ra, ifid.pc + 4);
+                }
+                DecodeReturn::Jump(ifid.pc + instruction.addr.unwrap() << 2)
+            },
+            _ => {
+                DecodeReturn::None
+            }
         }
     }
 }

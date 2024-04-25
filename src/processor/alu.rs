@@ -2,6 +2,7 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use crate::processor::buffer::{EXMEMBuffer, IDEXBuffer};
 use crate::processor::instruction::InstructionType;
+use crate::processor::registers::{Register, Registers};
 
 pub struct ALU {
     hi: u32,
@@ -138,9 +139,7 @@ impl ALU {
                     FunctionCode::Sra => {
                         exmem.alu_result = ((idex.data_2 as i32) >> instruction.shamt.unwrap()) as u32;
                     },
-                    FunctionCode::Syscall => {
-                        // TODO: Implement syscall
-                    }
+                    FunctionCode::Syscall => {}
                 }
             },
             InstructionType::I => {
@@ -179,9 +178,7 @@ impl ALU {
                     OpCode::Sw => {}
                 }
             },
-            InstructionType::J => {
-
-            },
+            InstructionType::J => {},
             _ => {}
         }
     }

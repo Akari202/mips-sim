@@ -1,3 +1,5 @@
+#![feature(non_null_convenience)]
+
 mod processor;
 
 fn main() {

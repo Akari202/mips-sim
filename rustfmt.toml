@@ -1,0 +1,10 @@
+indent_style = "Block"
+reorder_imports = false
+trailing_comma = "Never"
+match_block_trailing_comma = false
+brace_style = "SameLineWhere"
+where_single_line = false
+imports_layout = "HorizontalVertical"
+match_arm_blocks = true
+match_arm_leading_pipes = "Never"
+fn_call_width = 80

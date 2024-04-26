@@ -17,10 +17,15 @@ pub struct IDEXBuffer {
 pub struct EXMEMBuffer {
     pub instruction: Option<Instruction>,
     pub alu_result: u32,
+    pub data_2: u32,
     pub pc: u32
 }
 
-pub struct MEMWBBuffer {}
+pub struct MEMWBBuffer {
+    pub instruction: Option<Instruction>,
+    pub data: u32,
+    pub pc: u32
+}
 
 impl IFIDBuffer {
     pub fn new() -> Self {
@@ -28,11 +33,6 @@ impl IFIDBuffer {
             instruction: None,
             pc: 0
         }
-    }
-
-    pub fn set(&mut self, instruction: Instruction, pc: u32) {
-        self.instruction = Some(instruction);
-        self.pc = pc;
     }
 }
 
@@ -53,6 +53,7 @@ impl EXMEMBuffer {
         Self {
             instruction: None,
             alu_result: 0,
+            data_2: 0,
             pc: 0
         }
     }
@@ -60,7 +61,11 @@ impl EXMEMBuffer {
 
 impl MEMWBBuffer {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            instruction: None,
+            data: 0,
+            pc: 0
+        }
     }
 }
 

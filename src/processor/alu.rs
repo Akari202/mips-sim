@@ -1,3 +1,4 @@
+use log::{debug, info, trace};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use crate::processor::buffer::{EXMEMBuffer, IDEXBuffer};
@@ -58,129 +59,147 @@ pub enum OpCode {
 
 impl ALU {
     pub fn new() -> Self {
-        Self {
-            hi: 0,
-            lo: 0
-        }
+        Self { hi: 0, lo: 0 }
     }
 
     pub fn execute(&mut self, idex: &IDEXBuffer, exmem: &mut EXMEMBuffer) {
+        trace!("Executing ALU stage");
         let instruction = idex.instruction;
         exmem.pc = idex.pc;
         exmem.instruction = instruction;
         exmem.alu_result = 0;
+        exmem.data_2 = idex.data_2;
         if instruction.is_none() {
             return;
         }
         let instruction = instruction.unwrap();
         match instruction.instruction_type {
             InstructionType::R => {
-                match FunctionCode::from_u8(instruction.funct.unwrap()).unwrap() {
+                let funct = FunctionCode::from_u8(instruction.funct.unwrap()).unwrap();
+                debug!("Executing R-type instruction: {:?}", funct);
+                match funct {
                     FunctionCode::Add => {
-                        exmem.alu_result = (idex.data_1 as i32).wrapping_add(idex.data_2 as i32) as u32;
-                    },
+                        exmem.alu_result =
+                            (idex.data_1 as i32).wrapping_add(idex.data_2 as i32) as u32;
+                    }
                     FunctionCode::Addu => {
                         exmem.alu_result = idex.data_1.wrapping_add(idex.data_2);
-                    },
+                    }
                     FunctionCode::And => {
                         exmem.alu_result = idex.data_1 & idex.data_2;
-                    },
+                    }
                     FunctionCode::Jr => {
                         exmem.pc = idex.data_1;
-                    },
+                    }
                     FunctionCode::Nor => {
                         exmem.alu_result = !(idex.data_1 | idex.data_2);
-                    },
+                    }
                     FunctionCode::Or => {
                         exmem.alu_result = idex.data_1 | idex.data_2;
-                    },
+                    }
                     FunctionCode::Slt => {
-                        exmem.alu_result = if (idex.data_1 as i32) < (idex.data_2 as i32) { 1 } else { 0 };
-                    },
+                        exmem.alu_result = if (idex.data_1 as i32) < (idex.data_2 as i32) {
+                            1
+                        } else {
+                            0
+                        };
+                    }
                     FunctionCode::Sltu => {
                         exmem.alu_result = if idex.data_1 < idex.data_2 { 1 } else { 0 };
-                    },
+                    }
                     FunctionCode::Sll => {
                         exmem.alu_result = idex.data_2 << instruction.shamt.unwrap();
-                    },
+                    }
                     FunctionCode::Srl => {
                         exmem.alu_result = idex.data_2 >> instruction.shamt.unwrap();
-                    },
+                    }
                     FunctionCode::Sub => {
-                        exmem.alu_result = (idex.data_1 as i32).wrapping_sub(idex.data_2 as i32) as u32;
-                    },
+                        exmem.alu_result =
+                            (idex.data_1 as i32).wrapping_sub(idex.data_2 as i32) as u32;
+                    }
                     FunctionCode::Subu => {
                         exmem.alu_result = idex.data_1.wrapping_sub(idex.data_2);
-                    },
+                    }
                     FunctionCode::Div => {
                         self.lo = (idex.data_1 as i32 / idex.data_2 as i32) as u32;
                         self.hi = (idex.data_1 as i32 % idex.data_2 as i32) as u32;
-                    },
+                    }
                     FunctionCode::Divu => {
                         self.lo = idex.data_1 / idex.data_2;
                         self.hi = idex.data_1 % idex.data_2;
-                    },
+                    }
                     FunctionCode::Mfhi => {
                         exmem.alu_result = self.hi;
-                    },
+                    }
                     FunctionCode::Mflo => {
                         exmem.alu_result = self.lo;
-                    },
+                    }
                     FunctionCode::Mult => {
                         let result = (idex.data_1 as i64) * (idex.data_2 as i64);
                         self.lo = result as u32;
                         self.hi = (result >> 32) as u32;
-                    },
+                    }
                     FunctionCode::Multu => {
                         let result = (idex.data_1 as u64) * (idex.data_2 as u64);
                         self.lo = result as u32;
                         self.hi = (result >> 32) as u32;
-                    },
+                    }
                     FunctionCode::Sra => {
-                        exmem.alu_result = ((idex.data_2 as i32) >> instruction.shamt.unwrap()) as u32;
-                    },
+                        exmem.alu_result =
+                            ((idex.data_2 as i32) >> instruction.shamt.unwrap()) as u32;
+                    }
                     FunctionCode::Syscall => {}
                 }
-            },
+            }
             InstructionType::I => {
-                match OpCode::from_u8(instruction.opcode).unwrap() {
+                let opcode = OpCode::from_u8(instruction.opcode).unwrap();
+                debug!("Executing I-type instruction: {:?}", opcode);
+                match opcode {
                     OpCode::Addi => {
-                        exmem.alu_result = (idex.data_1 as i32).wrapping_add(idex.sign_extended as i32) as u32;
-                    },
+                        exmem.alu_result =
+                            (idex.data_1 as i32).wrapping_add(idex.sign_extended as i32) as u32;
+                    }
                     OpCode::Addiu => {
                         exmem.alu_result = idex.data_1.wrapping_add(idex.sign_extended);
-                    },
+                    }
                     OpCode::Andi => {
                         exmem.alu_result = idex.data_1 & idex.sign_extended;
-                    },
+                    }
                     OpCode::Beq => {
                         if idex.data_1 == idex.data_2 {
                             exmem.pc = idex.pc.wrapping_add(4).wrapping_add(idex.sign_extended);
                         }
-                    },
+                    }
                     OpCode::Bne => {
                         if idex.data_1 != idex.data_2 {
                             exmem.pc = idex.pc.wrapping_add(4).wrapping_add(idex.sign_extended);
                         }
-                    },
-                    // TODO: Implement remaining I-type instructions
-                    OpCode::Lbu => {},
-                    OpCode::Lhu => {},
-                    OpCode::Ll => {},
-                    OpCode::Lui => {},
-                    OpCode::Lw => {},
-                    OpCode::Ori => {},
-                    OpCode::Slti => {},
-                    OpCode::Sltiu => {},
-                    OpCode::Sb => {},
-                    OpCode::Sc => {},
-                    OpCode::Sh => {},
-                    OpCode::Sw => {}
+                    }
+                    OpCode::Lui => {
+                        exmem.alu_result = idex.sign_extended << 16;
+                    }
+                    OpCode::Ori => {
+                        exmem.alu_result = idex.data_1 | idex.sign_extended;
+                    }
+                    OpCode::Slti => {
+                        exmem.alu_result = if (idex.data_1 as i32) < (idex.sign_extended as i32) {
+                            1
+                        } else {
+                            0
+                        };
+                    }
+                    OpCode::Sltiu => {
+                        exmem.alu_result = if idex.data_1 < idex.sign_extended { 1 } else { 0 };
+                    }
+                    OpCode::Sb | OpCode::Sc | OpCode::Sh |
+                    OpCode::Sw | OpCode::Lbu | OpCode::Ll |
+                    OpCode::Lhu | OpCode::Lw => {
+                        exmem.alu_result = idex.data_1.wrapping_add(idex.sign_extended);
+                    }
                 }
-            },
-            InstructionType::J => {},
+            }
+            InstructionType::J => {}
             _ => {}
         }
     }
 }
-

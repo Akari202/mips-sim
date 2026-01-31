@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::ptr::NonNull;
-use log::{debug, trace};
+use log::{debug, info, trace};
 use crate::processor::buffer::{EXMEMBuffer, MEMWBBuffer};
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl Memory {
         if pointer.is_null() {
             panic!("Failed to allocate memory");
         }
-        debug!(
+        info!(
             "Allocated {} bytes at address {:#x}",
             word_capacity << 2,
             pointer as u32
@@ -81,11 +81,11 @@ impl Memory {
     }
 
     pub fn write_byte(&mut self, address: u32, value: u8) {
-        trace!("Writing byte {:#x} to address {:#x}", value, address);
+        debug!("Writing byte {:#x} to address {:#x}", value, address);
         self.check_address(address);
         let pointer = unsafe { self.pointer.offset(address as isize) };
         unsafe {
-            pointer.write(value.swap_bytes());
+            pointer.write(value);
         }
         self.alloc = self.alloc.max(address + 1);
     }
@@ -98,11 +98,11 @@ impl Memory {
     }
 
     pub fn write_halfword(&mut self, address: u32, value: u16) {
-        trace!("Writing halfword {:#x} to address {:#x}", value, address);
+        debug!("Writing halfword {:#x} to address {:#x}", value, address);
         self.check_address(address);
         let pointer = unsafe { self.pointer.offset(address as isize) };
         unsafe {
-            pointer.cast::<u16>().write(value.swap_bytes());
+            pointer.cast::<u16>().write(value);
         }
         self.alloc = self.alloc.max(address + 2);
     }
@@ -115,11 +115,11 @@ impl Memory {
     }
 
     pub fn write_word(&mut self, address: u32, value: u32) {
-        trace!("Writing word {:#x} to address {:#x}", value, address);
+        debug!("Writing word {:#x} to address {:#x}", value, address);
         self.check_address(address);
         let pointer = unsafe { self.pointer.offset(address as isize) };
         unsafe {
-            pointer.cast::<u32>().write(value.swap_bytes());
+            pointer.cast::<u32>().write(value);
         }
         self.alloc = self.alloc.max(address + 4);
     }
@@ -132,11 +132,11 @@ impl Memory {
     }
 
     pub fn write_quad(&mut self, address: u32, value: u64) {
-        trace!("Writing quad {:#x} to address {:#x}", value, address);
+        debug!("Writing quad {:#x} to address {:#x}", value, address);
         self.check_address(address);
         let pointer = unsafe { self.pointer.offset(address as isize) };
         unsafe {
-            pointer.cast::<u64>().write(value.swap_bytes());
+            pointer.cast::<u64>().write(value);
         }
         self.alloc = self.alloc.max(address + 8);
     }
@@ -158,15 +158,16 @@ impl Memory {
     }
 
     pub fn write_cstring(&mut self, address: u32, value: &str) {
-        trace!("Writing cstring {:?} to address {:#x}", value, address);
+        debug!("Writing cstring {:?} to address {:#x}", value, address);
         self.check_address(address);
         let bytes = value.as_bytes();
         let mut index = address;
         for byte in bytes {
-            self.write_byte(index, *byte.swap_bytes());
+            self.write_byte(index, *byte);
             index += 1;
         }
         self.write_byte(index, "\0".as_bytes()[0]);
+        self.alloc = self.alloc.max(index + 1);
     }
 
     fn check_address(&self, address: u32) {
@@ -181,19 +182,29 @@ impl Display for Memory {
         writeln!(f, "Memory: {} bytes", self.capacity)?;
         writeln!(f, "Stack Pointer: {:#x}", self.stack_pointer)?;
         writeln!(f, "Allocated: {:#x}", self.alloc)?;
+        for i in 0..(self.alloc / 4) {
+            let index = i * 4;
+            let byte = self.read_word(index);
+            write!(f, "    {:#04x}: {:#010x}    |    ", index, byte)?;
+            for j in 0..4 {
+                let byte = self.read_byte(index + j);
+                write!(f, "{:#04x} ", byte)?;
+            }
+            writeln!(f)?;
+        }
         Ok(())
     }
 }
 
 pub mod DataMemory {
-    use log::trace;
+    use log::{debug, info, trace};
     use num_traits::FromPrimitive;
     use crate::processor::alu::OpCode;
     use crate::processor::buffer::{EXMEMBuffer, MEMWBBuffer};
     use crate::processor::memory::Memory;
 
     pub fn execute(exmem: &EXMEMBuffer, memwb: &mut MEMWBBuffer, memory: &mut Memory) {
-        trace!("Executing memory stage");
+        info!("Executing memory stage");
         let instruction = exmem.instruction;
         if instruction.is_none() {
             return;

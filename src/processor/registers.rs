@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, info, trace};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use crate::processor::alu::{FunctionCode, OpCode};
@@ -110,8 +110,8 @@ impl Registers {
         idex: &mut IDEXBuffer,
         memwb: &mut MEMWBBuffer
     ) -> DecodeReturn {
-        trace!("Executing register stage");
-        trace!("Executing write back");
+        info!("Executing register stage");
+        debug!("Executing write back");
         let instruction = memwb.instruction;
         if instruction.is_some() {
             let instruction = instruction.unwrap();
@@ -119,7 +119,7 @@ impl Registers {
             self.set(rd, memwb.data);
         }
 
-        trace!("Executing decode");
+        debug!("Executing decode");
         let instruction = ifid.instruction;
         idex.instruction = instruction;
         idex.pc = ifid.pc;

@@ -1,5 +1,5 @@
 use std::cmp::PartialEq;
-use log::{debug, trace};
+use log::{debug, info, trace};
 use text_io::read;
 use crate::processor::alu::ALU;
 use crate::processor::buffer::{EXMEMBuffer, IDEXBuffer, IFIDBuffer, MEMWBBuffer};
@@ -59,7 +59,7 @@ impl Processor {
     }
 
     pub fn cycle(&mut self) {
-        trace!("Cycle start");
+        info!("Cycle start");
         DataMemory::execute(&self.ex_mem_buffer, &mut self.mem_wb_buffer, &mut self.memory);
         self.alu
             .execute(&self.id_ex_buffer, &mut self.ex_mem_buffer);
@@ -118,7 +118,7 @@ impl std::fmt::Display for Processor {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "Program Counter: {:#x}\n", self.program_counter.get())?;
         writeln!(f, "{}", self.memory)?;
-        writeln!(f, "{}", self.registers)?;
+        // writeln!(f, "{}", self.registers)?;
         writeln!(f, "{}", self.if_id_buffer)?;
         writeln!(f, "{}", self.id_ex_buffer)?;
         writeln!(f, "{}", self.ex_mem_buffer)?;

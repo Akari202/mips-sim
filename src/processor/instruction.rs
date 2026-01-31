@@ -4,6 +4,7 @@ use num_traits::FromPrimitive;
 use crate::processor::alu::FunctionCode;
 use crate::processor::registers::Register;
 
+// TODO: Big refactor needed here. Store the enum values rather than the raw values
 #[derive(Clone, Copy)]
 pub struct Instruction {
     pub opcode: u8,
@@ -32,7 +33,7 @@ pub enum InstructionType {
 
 impl Instruction {
     pub fn load(data: u32) -> Self {
-        debug!("Loading instruction: {:#032b}", data);
+        debug!("Loading instruction: {:#034b}", data);
         let opcode: u8 = (data >> 26) as u8;
         match opcode {
             0 => {

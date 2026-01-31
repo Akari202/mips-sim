@@ -63,7 +63,7 @@ impl ALU {
     }
 
     pub fn execute(&mut self, idex: &IDEXBuffer, exmem: &mut EXMEMBuffer) {
-        trace!("Executing ALU stage");
+        info!("Executing ALU stage");
         let instruction = idex.instruction;
         exmem.pc = idex.pc;
         exmem.instruction = instruction;
